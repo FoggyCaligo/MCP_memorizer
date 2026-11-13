@@ -16,9 +16,9 @@ from .extraction.service import ModelFactExtractor
 class MemorySearchInput(BaseModel):
     """MAI's original exclusive three-mode query contract."""
     model_config = ConfigDict(extra="forbid")
-    node_id: int | None = Field(None, gt=0)
-    keyword: str | None = Field(None, min_length=1)
-    limit: int | None = Field(None, ge=1)
+    node_id: int | None = Field(None, gt=0, description="Expand a previously returned, user-owned memory graph node by one hop; cannot combine with keyword or limit.")
+    keyword: str | None = Field(None, min_length=1, description="Topic/keyword recall from persistent user memory; optionally combine with limit.")
+    limit: int | None = Field(None, ge=1, description="For keyword recall, cap returned results; without keyword use 1..50 for a recent overview. Not allowed with node_id.")
     @model_validator(mode="after")
     def check(self):
         if self.node_id is not None and (self.keyword is not None or self.limit is not None):
