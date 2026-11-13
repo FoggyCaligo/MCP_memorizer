@@ -1,0 +1,1 @@
+"""MAI memory core port."""
