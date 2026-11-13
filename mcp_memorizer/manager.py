@@ -52,11 +52,15 @@ class Memorizer:
         args = MemorySearchInput(node_id=node_id, keyword=keyword, limit=limit)
         if args.node_id is not None:
             anchor = self.graph.get_user_anchor(self.user_id)
-            if anchor is None or (
-                args.node_id != anchor.id and
-                self.graph.shortest_path_to_user_anchor(args.node_id, self.user_id) is None
+            node = self.graph.get_node(args.node_id)
+            # Shared concept nodes can connect facts of multiple users, so
+            # shortest-path reachability alone is not an ownership check.
+            if anchor is None or not (
+                (node.node_type == "anchor" and node.id == anchor.id) or
+                (node.node_type in {"fact", "utterance"} and
+                 node.payload.get("user_id") == self.user_id)
             ):
-                raise PermissionError("node is not owned by current user")
+                raise PermissionError("memory node does not belong to the current user")
             return self.runtime.memory_search(self._working, user_id=self.user_id, node_id=args.node_id)
         if args.keyword is None:
             return self.runtime.memory_overview(user_id=self.user_id, limit=args.limit)
