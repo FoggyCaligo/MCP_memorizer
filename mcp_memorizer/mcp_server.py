@@ -3,11 +3,9 @@ from __future__ import annotations
 import os
 from mcp.server.fastmcp import FastMCP
 from .manager import Memorizer
-from .policy import MEMORY_SEARCH_DESCRIPTION, MEMORY_MODEL_CONTEXT
+from .policy import MEMORY_SEARCH_DESCRIPTION
 
 mcp = FastMCP("MCP_memorizer")
-# The same authoritative wording is shared with native MAI/Hermes adapters.
-memory_search_policy = MEMORY_SEARCH_DESCRIPTION
 _store_instance: Memorizer | None = None
 
 def _store() -> Memorizer:
@@ -18,7 +16,7 @@ def _store() -> Memorizer:
             user_id=os.environ.get("MEMORIZER_USER_ID", "local-user"))
     return _store_instance
 
-@mcp.tool()
+@mcp.tool(description=MEMORY_SEARCH_DESCRIPTION)
 def memory_search(node_id: int | None = None, keyword: str | None = None,
                   limit: int | None = None) -> dict:
     """Read-only memory search (three modes). See shared policy for details."""
