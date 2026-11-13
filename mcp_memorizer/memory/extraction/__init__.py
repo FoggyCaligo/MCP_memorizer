@@ -1,0 +1,1 @@
+"""Legacy extraction import compatibility."""
