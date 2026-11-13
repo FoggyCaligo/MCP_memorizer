@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 
-from mcp_memorizer.policy import MEMORY_MODEL_CONTEXT_KEY, MEMORY_MODEL_CONTEXT, MEMORY_SEARCH_DESCRIPTION
+from mcp_memorizer.policy import MEMORY_MODEL_CONTEXT_KEY, MEMORY_MODEL_CONTEXT, MEMORY_SEARCH_DESCRIPTION, MEMORY_CATALOG_HINT
 from mcp_memorizer.memory.runtime import MemoryRuntime
 from mcp_memorizer.memory.working import WorkingGraph
 
@@ -75,5 +75,6 @@ def register_memory_tools(registry, memory: MemoryRuntime, working: WorkingGraph
         input_model=MemorySearchInput,
         handler=memory_search,
         category="memory",
+        metadata={"catalog_hint": MEMORY_CATALOG_HINT},
     )
 
