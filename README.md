@@ -66,10 +66,10 @@ await memory.after_response(
 )
 ```
 
-Other agents can use `mcp_memorizer.lifecycle.with_memory` as a
-generic asynchronous wrapper; framework plugins are needed for Hermes,
-OpenClaw and DeepSeek Harness to guarantee an end-of-turn callback.
-No verified framework-specific plugins are shipped in this alpha.
+Other agents can use `mcp_memorizer.lifecycle.with_memory` as a generic
+asynchronous wrapper. An **experimental Hermes adapter** is included in
+`integrations/hermes/` (not yet live-tested). OpenClaw and DeepSeek Harness
+still require dedicated lifecycle plugins to guarantee post-final writes.
 
 ## Provenance and status
 
