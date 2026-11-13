@@ -32,3 +32,30 @@ MEMORY_SEARCH_DESCRIPTION = (
     "The model can SEARCH but cannot SAVE memory: after a committed final answer, "
     "the host independently calls its extraction model and persists the resulting facts."
 )
+
+# Discovery hint only: deliberately NOT the complete tool schema. MAI displays
+# this in the first-round tool catalog before tool_manual activation.
+MEMORY_CATALOG_HINT = (
+    "Read-only persistent user memory. Activate memory_search via "
+    "tool_manual(tools=['memory_search']) when the user asks to recall a prior "
+    "fact or when important user-specific context is missing. "
+    "After activation, use keyword='topic' (+ optional limit) for topic/keyword "
+    "recall, limit=1..50 alone for recent overview, or node_id alone for "
+    "one-hop graph expansion. Do not mix node_id with other selectors. "
+    "Read the activated tool schema before invoking; search is lexical, "
+    "so retry with alternative keywords when needed. "
+    "The model cannot save memory: post-final extraction/storage is host-owned."
+)
+
+MEMORY_SEARCH_EXAMPLES = (
+    "VALID calls after tool_manual activation: "
+    "memory_search(keyword='MAI memory project'); "
+    "memory_search(keyword='preferences', limit=8); "
+    "memory_search(limit=10); "
+    "memory_search(node_id=123). "
+    "INVALID calls: memory_search() [overview needs limit]; "
+    "memory_search(query='...') [the parameter is keyword]; "
+    "memory_search(node_id=123, limit=5) [selector conflict]. "
+    "Do not pass user_id, at_remote_pc, or unrelated arguments."
+)
+MEMORY_SEARCH_DESCRIPTION += " " + MEMORY_SEARCH_EXAMPLES
