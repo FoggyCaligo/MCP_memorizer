@@ -1,0 +1,1 @@
+"""Structured model extraction adapter."""

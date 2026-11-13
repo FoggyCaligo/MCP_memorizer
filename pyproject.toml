@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-memorizer"
+version = "0.1.0a0"
+description = "MAI-derived independent memory graph with search-only MCP and post-response SDK"
+requires-python = ">=3.11"
+license = "AGPL-3.0-only"
+dependencies = [
+  "pydantic>=2.0,<3",
+  "sentence-breaker @ git+https://github.com/FoggyCaligo/Sentence_Breaker.git@main"
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0,<3"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+mcp-memorizer = "mcp_memorizer.mcp_server:main"
+
+[tool.setuptools.packages.find]
+include = ["mcp_memorizer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

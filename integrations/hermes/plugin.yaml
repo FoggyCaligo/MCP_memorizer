@@ -1,0 +1,8 @@
+name: mcp-memorizer
+version: 0.1.0a0
+description: "Read-only MAI graph memory search and host-controlled final-answer extraction."
+author: FoggyCaligo
+hooks:
+  - post_llm_call
+provides_tools:
+  - memory_search
