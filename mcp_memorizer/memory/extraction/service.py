@@ -1,0 +1,1 @@
+from mcp_memorizer.extraction.service import FactExtractor
