@@ -3,9 +3,9 @@ from __future__ import annotations
 import os
 from mcp.server.fastmcp import FastMCP
 from .manager import Memorizer
-from .policy import MEMORY_SEARCH_DESCRIPTION
+from .policy import MEMORY_SEARCH_DESCRIPTION, MEMORY_MODEL_CONTEXT
 
-mcp = FastMCP("MCP_memorizer")
+mcp = FastMCP("MCP_memorizer", instructions=MEMORY_MODEL_CONTEXT["instruction"])
 _store_instance: Memorizer | None = None
 
 def _store() -> Memorizer:
