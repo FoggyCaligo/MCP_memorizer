@@ -3,8 +3,11 @@ from __future__ import annotations
 import os
 from mcp.server.fastmcp import FastMCP
 from .manager import Memorizer
+from .policy import MEMORY_SEARCH_DESCRIPTION, MEMORY_MODEL_CONTEXT
 
 mcp = FastMCP("MCP_memorizer")
+# The same authoritative wording is shared with native MAI/Hermes adapters.
+memory_search_policy = MEMORY_SEARCH_DESCRIPTION
 _store_instance: Memorizer | None = None
 
 def _store() -> Memorizer:
@@ -18,16 +21,7 @@ def _store() -> Memorizer:
 @mcp.tool()
 def memory_search(node_id: int | None = None, keyword: str | None = None,
                   limit: int | None = None) -> dict:
-    """Search persistent memory using the original MAI three modes.
-
-    keyword: topic/free-text recall, optionally limit the number of facts.
-    node_id: expand an owned graph node by one hop. Forbid keyword/limit.
-    limit only: bounded recent-memory overview (required 1..50).
-    An empty or bounded search result does NOT prove other memories are absent.
-    Current user statements and current tool results override older memories.
-    Among conflicting Fact nodes of the same subject/property/time scope, use
-    the latest created_at, not recall rank or occurrence count.
-    """
+    """Read-only memory search (three modes). See shared policy for details."""
     return _store().search(node_id=node_id, keyword=keyword, limit=limit)
 
 def main() -> None:
