@@ -18,10 +18,16 @@ changes are NOT included in this repository's alpha.
 
 ## Hermes
 
-A Hermes plugin should provide a read-only search tool, then use a reliably
-committed final-response/turn event to schedule the MAI-compatible extraction.
-Check whether the observed event fires per LLM call or only after full agent
-completion. Never save tool-request intermediary messages.
+An **experimental Hermes general plugin** is now included at
+`integrations/hermes/`. It registers `memory_search` and uses the confirmed
+`post_llm_call` successful-final-response hook with `ctx.llm.complete_structured`
+to extract facts using the original MAI prompt. It deliberately excludes
+tool evidence when success cannot be independently established. Copy the
+directory into `~/.hermes/plugins/mcp-memorizer/`, install the Python package
+in Hermes' environment, and enable the plugin. Resolve any collision with
+Hermes' existing memory tools explicitly; do not silently override tools.
+The plugin is **experimental and not yet tested against a live Hermes host**.
+It is intended for one trusted local memory user per running process.
 
 ## OpenClaw
 
