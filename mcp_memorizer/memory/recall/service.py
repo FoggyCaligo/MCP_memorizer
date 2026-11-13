@@ -1,4 +1,4 @@
-"""Concept-index entry with Fact-only model-visible recall."""
+"""Concept-index retrieval of owned Fact and Utterance memories."""
 from __future__ import annotations
 
 from ..graph.models import GraphNeighborhood
@@ -40,22 +40,30 @@ class RecallService:
             raise KeyError(f"user anchor for '{user_id}' does not exist")
 
         hits = self._select_query_seeds(query)
-        # Reuse the ranked Concept hits: a fact's score is the best score of
-        # any directly connected seed. Stable encounter order breaks ties.
-        fact_hits: dict[int, tuple[float, int]] = {}
+        # A Concept directly indexes both extracted facts and original user
+        # utterances through 'mentions' edges. Rank both by the same Concept
+        # hit score; keep the caller's user ownership boundary intact.
+        memory_hits: dict[int, tuple[float, int]] = {}
         for hit in hits:
-            compact = self._facts_only(self.graph.one_hop(hit.node_id))
-            for node in compact.nodes:
-                if node.node_type != "fact" or node.payload.get("user_id") != user_id:
+            neighborhood = self.graph.one_hop(hit.node_id)
+            connected_ids = {
+                edge.from_node_id if edge.to_node_id == hit.node_id else edge.to_node_id
+                for edge in neighborhood.edges
+                if edge.relation == "mentions"
+            }
+            for node in neighborhood.nodes:
+                if (node.id not in connected_ids or
+                        node.node_type not in {"fact", "utterance"} or
+                        node.payload.get("user_id") != user_id):
                     continue
-                previous = fact_hits.get(node.id)
+                previous = memory_hits.get(node.id)
                 if previous is None:
-                    fact_hits[node.id] = (hit.score, len(fact_hits))
+                    memory_hits[node.id] = (hit.score, len(memory_hits))
                 elif hit.score > previous[0]:
-                    fact_hits[node.id] = (hit.score, previous[1])
+                    memory_hits[node.id] = (hit.score, previous[1])
 
         ranked = sorted(
-            fact_hits, key=lambda node_id: (-fact_hits[node_id][0], fact_hits[node_id][1])
+            memory_hits, key=lambda node_id: (-memory_hits[node_id][0], memory_hits[node_id][1])
         )
         if limit is not None:
             ranked = ranked[:limit]
@@ -64,7 +72,7 @@ class RecallService:
         for node_id in ranked:
             path = self.graph.shortest_path_to_user_anchor(node_id, user_id)
             if path is not None:
-                recalled.merge(self._facts_only(path), mark_expanded=False)
+                recalled.merge(self._content_only(path), mark_expanded=False)
         return recalled
 
     def auto_recall(self, *, user_id: str, user_text: str) -> WorkingGraph:
@@ -116,11 +124,11 @@ class RecallService:
         return tuple(hit for hit, _, _ in ranked[:self.concept_limit])
 
     @staticmethod
-    def _facts_only(neighborhood: GraphNeighborhood) -> GraphNeighborhood:
+    def _content_only(neighborhood: GraphNeighborhood) -> GraphNeighborhood:
         nodes = tuple(
             node
             for node in neighborhood.nodes
-            if node.node_type in {"anchor", "fact"}
+            if node.node_type in {"anchor", "fact", "utterance"}
         )
         node_ids = {node.id for node in nodes}
         edges = tuple(
