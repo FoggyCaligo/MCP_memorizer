@@ -15,16 +15,13 @@ from typing import Any
 
 from mcp_memorizer import Memorizer
 from mcp_memorizer.extraction.prompt import _FACT_EXTRACTION_SYSTEM
+from mcp_memorizer.policy import MEMORY_SEARCH_DESCRIPTION
 from mcp_memorizer.extraction.service import _FactExtractionPayload
 
 LOG = logging.getLogger(__name__)
 
 SEARCH_SCHEMA = {
-    "description": (
-        "Read previously stored memory only. Modes: keyword + optional limit "
-        "(topic recall); limit alone (1-50) (bounded recent overview); node_id "
-        "alone (expand known owned graph node). Never infer absence from empty results."
-    ),
+    "description": MEMORY_SEARCH_DESCRIPTION,
     "parameters": {
         "type": "object",
         "properties": {
