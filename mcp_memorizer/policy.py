@@ -28,7 +28,9 @@ MEMORY_SEARCH_DESCRIPTION = (
     "Example: query='(\"병력\" | \"질환\" | \"질병\" | \"아픔\" | \"disease\") & (\"어릴 적\" | \"어린 시절\" | \"유년기\" | \"childhood\")'. "
     "query may use a positive limit; overview requires limit 1..50, and node_id cannot combine with query or limit. "
     "Lexical matches are not automatically expanded to synonyms or translations. Empty results do not prove memory absence. "
-    "Memory is host-local and read-only for the model. Do not supply user_id or remote target."
+    "Use memory_search when user-specific context is missing from the current conversation. "
+    "Memory is host-local and read-only for the model. Do not supply user_id or remote target. "
+    "The host independently extracts and saves facts after a committed final answer."
 )
 MEMORY_CATALOG_HINT = (
     "Read-only memory search; activate memorizer__memory_search through tool_manual. "
