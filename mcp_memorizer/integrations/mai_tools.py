@@ -10,30 +10,30 @@ from mcp_memorizer.memory.runtime import MemoryRuntime
 from mcp_memorizer.memory.working import WorkingGraph
 
 class MemorySearchInput(BaseModel):
-    """Select node expansion, keyword recall, or bounded recent overview."""
+    """Select node expansion, query recall, or bounded recent overview."""
     model_config = ConfigDict(extra="forbid")
     node_id: int | None = Field(
         default=None, gt=0,
         description="Expand a known memory node by its ID (graph search).",
     )
-    keyword: str | None = Field(
+    query: str | None = Field(
         default=None, min_length=1,
         description="Search persistent memories by topic or free-text keywords (recall).",
     )
     limit: int | None = Field(
         default=None, ge=1,
-        description="Maximum results: optional for keyword recall, required (1–50) for overview, forbidden with node_id.",
+        description="Maximum results: optional for query recall, required (1–50) for overview, forbidden with node_id.",
     )
 
     @model_validator(mode="after")
     def check_selector(self) -> "MemorySearchInput":
-        if self.node_id is not None and self.keyword is not None:
-            raise ValueError("Provide at most one of node_id or keyword")
+        if self.node_id is not None and self.query is not None:
+            raise ValueError("Provide at most one of node_id or query")
         if self.node_id is not None and self.limit is not None:
             raise ValueError("limit is not valid with node_id")
-        if self.node_id is None and self.keyword is None:
+        if self.node_id is None and self.query is None:
             if self.limit is None:
-                raise ValueError("limit is required for overview without node_id or keyword")
+                raise ValueError("limit is required for overview without node_id or query")
             if self.limit > 50:
                 raise ValueError("overview limit must be at most 50")
         return self
@@ -52,20 +52,20 @@ def register_memory_tools(registry, memory: MemoryRuntime, working: WorkingGraph
 
     async def memory_search(
         node_id: int | None = None,
-        keyword: str | None = None,
+        query: str | None = None,
         limit: int | None = None,
     ) -> dict[str, object]:
         if node_id is not None:
             return memory.memory_search(working, user_id=user_id, node_id=node_id)
-        if keyword is None:
+        if query is None:
             if limit is None:
                 raise ValueError("limit is required for overview")
             if not include_recall_entry:
                 raise ValueError("Overview is disabled for this tool registry")
             return memory.memory_overview(user_id=user_id, limit=limit)
         if not include_recall_entry:
-            raise ValueError("Keyword recall is disabled for this tool registry")
-        recalled = memory.explicit_recall(user_id=user_id, query=keyword, limit=limit)
+            raise ValueError("Query recall is disabled for this tool registry")
+        recalled = memory.explicit_recall(user_id=user_id, query=query, limit=limit)
         working.merge_working(recalled)
         return recalled.model_snapshot()
 

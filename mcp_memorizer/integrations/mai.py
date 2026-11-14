@@ -19,8 +19,8 @@ class MAIExtractionAdapter:
 
 def register_memory_search_tool(registry, memory: Memorizer) -> None:
     """Only memory_search is exposed to MAI's model tool registry."""
-    async def search(node_id=None, keyword=None, limit=None):
-        return memory.search(node_id=node_id, keyword=keyword, limit=limit)
+    async def search(node_id=None, query=None, limit=None):
+        return memory.search(node_id=node_id, query=query, limit=limit)
     registry.add_model_context(key=MEMORY_MODEL_CONTEXT_KEY, context=MEMORY_MODEL_CONTEXT)
     registry.add(
         name="memory_search",

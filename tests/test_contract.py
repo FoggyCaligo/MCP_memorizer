@@ -27,10 +27,10 @@ def test_round_trip(tmp_path):
         user_text="I like apples", final_answer="Okay", turn_id="t1"))
     assert result["saved"] == 1
     assert model.calls == 1
-    assert store.search(keyword="likes")["nodes"]
+    assert store.search(query="likes")["nodes"]
     assert store.search(limit=5)["memories"]
     with pytest.raises(ValueError):
-        store.search(node_id=1, keyword="other")
+        store.search(node_id=1, query="other")
     store.close()
 
 def test_selector_validation():
@@ -38,3 +38,9 @@ def test_selector_validation():
         MemorySearchInput()
     with pytest.raises(ValueError):
         MemorySearchInput(limit=51)
+
+
+def test_query_selector_rejects_removed_keyword():
+    with pytest.raises(ValueError):
+        MemorySearchInput(keyword="old")
+    assert MemorySearchInput(query="a AND NOT b", limit=3).query == "a AND NOT b"

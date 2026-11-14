@@ -16,14 +16,14 @@ from .extraction.service import ModelFactExtractor
 class MemorySearchInput(BaseModel):
     """MAI's original exclusive three-mode query contract."""
     model_config = ConfigDict(extra="forbid")
-    node_id: int | None = Field(None, gt=0, description="Expand a previously returned, user-owned memory graph node by one hop; cannot combine with keyword or limit.")
-    keyword: str | None = Field(None, min_length=1, description="Topic/keyword recall from persistent user memory; optionally combine with limit.")
-    limit: int | None = Field(None, ge=1, description="For keyword recall, cap returned results; without keyword use 1..50 for a recent overview. Not allowed with node_id.")
+    node_id: int | None = Field(None, gt=0, description="Expand a previously returned, user-owned memory graph node by one hop; cannot combine with query or limit.")
+    query: str | None = Field(None, min_length=1, description="Boolean query recall from persistent user memory; optionally combine with limit.")
+    limit: int | None = Field(None, ge=1, description="For query recall, cap returned results; without query use 1..50 for a recent overview. Not allowed with node_id.")
     @model_validator(mode="after")
     def check(self):
-        if self.node_id is not None and (self.keyword is not None or self.limit is not None):
-            raise ValueError("node_id forbids keyword and limit")
-        if self.node_id is None and self.keyword is None and (self.limit is None or self.limit > 50):
+        if self.node_id is not None and (self.query is not None or self.limit is not None):
+            raise ValueError("node_id forbids query and limit")
+        if self.node_id is None and self.query is None and (self.limit is None or self.limit > 50):
             raise ValueError("overview requires limit 1 to 50")
         return self
 
@@ -47,9 +47,9 @@ class Memorizer:
         self._write_lock = asyncio.Lock()
         self._saved_turns: set[str] = set()
 
-    def search(self, *, node_id: int | None = None, keyword: str | None = None,
+    def search(self, *, node_id: int | None = None, query: str | None = None,
                limit: int | None = None) -> dict[str, object]:
-        args = MemorySearchInput(node_id=node_id, keyword=keyword, limit=limit)
+        args = MemorySearchInput(node_id=node_id, query=query, limit=limit)
         if args.node_id is not None:
             anchor = self.graph.get_user_anchor(self.user_id)
             node = self.graph.get_node(args.node_id)
@@ -62,9 +62,9 @@ class Memorizer:
             ):
                 raise PermissionError("memory node does not belong to the current user")
             return self.runtime.memory_search(self._working, user_id=self.user_id, node_id=args.node_id)
-        if args.keyword is None:
+        if args.query is None:
             return self.runtime.memory_overview(user_id=self.user_id, limit=args.limit)
-        recalled = self.runtime.explicit_recall(user_id=self.user_id, query=args.keyword, limit=args.limit)
+        recalled = self.runtime.explicit_recall(user_id=self.user_id, query=args.query, limit=args.limit)
         self._working.merge_working(recalled)
         return recalled.model_snapshot()
 

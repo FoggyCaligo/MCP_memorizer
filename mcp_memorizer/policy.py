@@ -20,42 +20,28 @@ MEMORY_MODEL_CONTEXT = {
 }
 
 MEMORY_SEARCH_DESCRIPTION = (
-    "Retrieve persistent memory in one of three modes: keyword for topic-based recall "
-    "(e.g. hobbies, preferences, events), node_id to expand a known graph node, "
-    "or neither keyword nor node_id for a recent-memory overview. The overview mode "
-    "REQUIRES an explicit limit from 1 to 50; keyword recall supports an optional "
-    "positive limit and node_id forbids limit. A recent overview is not the complete "
-    "memory database. A bounded or empty result does not prove other memories are absent. "
-    "Use memory_search when user-specific information is needed but not present in "
-    "the current conversation; consult the registered tool schema before calling it. "
-    "This tool is host-local only; do not attempt remote execution or supply a remote-computer selector. "
-    "The model can SEARCH but cannot SAVE memory: after a committed final answer, "
-    "the host independently calls its extraction model and persists the resulting facts."
+    "Search persistent memory using query, expand a node using node_id, or list recent memories with limit alone. "
+    "query accepts one keyword (legacy lexical search) or Boolean expressions with AND (&), OR (|), NOT (!), "
+    "and parentheses ( ). Quoted phrases stay one query term. Operator precedence: NOT, AND, OR. "
+    "Each term uses the existing keyword lookup; Boolean set operations filter matching Fact/Utterance nodes. "
+    "NOT excludes memories matching its term; NOT alone excludes from all memories owned by the current user. "
+    "Example: query='("병력" | "질환" | "질병" | "아픔" | "disease") & ("어릴 적" | "어린 시절" | "유년기" | "childhood")'. "
+    "query may use a positive limit; overview requires limit 1..50, and node_id cannot combine with query or limit. "
+    "Lexical matches are not automatically expanded to synonyms or translations. Empty results do not prove memory absence. "
+    "Memory is host-local and read-only for the model. Do not supply user_id or remote target."
 )
-
-# Discovery hint only: deliberately NOT the complete tool schema. MAI displays
-# this in the first-round tool catalog before tool_manual activation.
 MEMORY_CATALOG_HINT = (
-    "Read-only persistent user memory. Activate memory_search via "
-    "tool_manual(tools=['memory_search']) when the user asks to recall a prior "
-    "fact or when important user-specific context is missing. "
-    "After activation, use keyword='topic' (+ optional limit) for topic/keyword "
-    "recall, limit=1..50 alone for recent overview, or node_id alone for "
-    "one-hop graph expansion. Do not mix node_id with other selectors. "
-    "Read the activated tool schema before invoking; search is lexical, "
-    "so retry with alternative keywords when needed. "
-    "The model cannot save memory: post-final extraction/storage is host-owned."
+    "Read-only memory search; activate memorizer__memory_search through tool_manual. "
+    "Use query='topic' or query='(A | B) & NOT C' with optional limit; "
+    "use limit=1..50 alone for recent overview; node_id alone for one-hop expansion. "
+    "Supports AND/OR/NOT and &/|/! plus parentheses; terms can be quoted. "
+    "Search is lexical, not semantic, and cannot save memories."
 )
-
 MEMORY_SEARCH_EXAMPLES = (
-    "VALID calls after tool_manual activation: "
-    "memory_search(keyword='MAI memory project'); "
-    "memory_search(keyword='preferences', limit=8); "
-    "memory_search(limit=10); "
-    "memory_search(node_id=123). "
-    "INVALID calls: memory_search() [overview needs limit]; "
-    "memory_search(query='...') [the parameter is keyword]; "
-    "memory_search(node_id=123, limit=5) [selector conflict]. "
-    "Do not pass user_id, at_remote_pc, or unrelated arguments."
+    "Examples: memory_search(query='MAI memory project'); "
+    "memory_search(query='("병력" | "질환" | "질병" | "아픔" | "disease") & ("어릴 적" | "어린 시절" | "유년기" | "childhood")', limit=10); "
+    "memory_search(query='질환 AND NOT 감기'); "
+    "memory_search(limit=10); memory_search(node_id=123). "
+    "Invalid: memory_search() or memory_search(node_id=123, limit=5)."
 )
 MEMORY_SEARCH_DESCRIPTION += " " + MEMORY_SEARCH_EXAMPLES

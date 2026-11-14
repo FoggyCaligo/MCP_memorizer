@@ -26,7 +26,7 @@ Python 3.11 이상과 SQLite FTS5가 필요하다. `Sentence_Breaker`는 이 패
 from mcp_memorizer import Memorizer
 
 memory = Memorizer(data_dir="./Memory_data", user_id="local-user")
-memory.search(keyword="project plans", limit=10)
+memory.search(query="project plans", limit=10)
 memory.search(limit=10)
 memory.search(node_id=123)
 ```

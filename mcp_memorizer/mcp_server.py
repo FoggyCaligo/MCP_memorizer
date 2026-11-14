@@ -17,10 +17,10 @@ def _store() -> Memorizer:
     return _store_instance
 
 @mcp.tool(description=MEMORY_SEARCH_DESCRIPTION)
-def memory_search(node_id: int | None = None, keyword: str | None = None,
+def memory_search(node_id: int | None = None, query: str | None = None,
                   limit: int | None = None) -> dict:
     """Read-only memory search (three modes). See shared policy for details."""
-    return _store().search(node_id=node_id, keyword=keyword, limit=limit)
+    return _store().search(node_id=node_id, query=query, limit=limit)
 
 def main() -> None:
     mcp.run(transport="stdio")
