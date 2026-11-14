@@ -1,61 +1,46 @@
-# 기억 검색·회수 계약
+# Memory search reference
 
-이 문서는 **MCP_memorizer 엔진**의 조회 알고리즘과 입력 계약을 설명한다. MAI의 `tool_manual`·이름 접두사 등은 [외부 연동](integrations.md)에서 다룬다.
+The public, **read-only** stdio MCP tool is `memory_search`. Clients may prefix the name, such as `memorizer__memory_search`. The host sets the current user's identity: **never pass `user_id` as a tool argument**.
 
-## MCP `memory_search` 입력
+## Arguments
 
-| 입력 | 의미 |
+| Argument | Usage |
 |---|---|
-| `query` + 선택적 양수 `limit` | 주제별 Fact/Utterance 조회, 최종 기억 개수 제한 |
-| 선택자 없는 `limit` | 최근 목록. 명시적 `limit` 필수, 1~50 |
-| `node_id` | 노드의 한 단계 이웃과 해당 사용자 Anchor 경로 확장 |
+| `query: string` | Keyword or Boolean search across saved facts and past utterances; optional `limit` |
+| `limit: positive int` | With `query`: cap returned memories. Alone: recent-memory overview, **required 1–50** |
+| `node_id: positive int` | Expand a previously returned node by one hop; cannot combine with `query` or `limit` |
 
-`node_id`와 `query`·`limit`을 함께 지정할 수 없다. 사용자 식별자는 호스트에서 바인딩하며 모델에게 `user_id` 인자를 주지 않는다.
+`query` replaces the former `keyword` argument. Calls with neither `query`, `node_id`, nor `limit` are invalid.
 
-## 주제 검색
+## Query syntax
 
-```text
-단일 검색어는 기존 공백 분리, 복합 query는 AND/OR/NOT/괄호 파싱 → 각 키워드 조회
- → 조각별 Concept exact·SQLite FTS5 검색 → 기억 노드별 합집합/교집합/차집합
- → 점수 높은 Concept 후보(기본 최대 12개)
- → 해당 Concept의 mentions 연결 노드
- → 사용자 소유 Fact·Utterance 선별
- → 최고 hit 점수·첫 발견 순서로 정렬
- → 선택적 limit 적용
- → 사용자 Anchor까지 경로 합성 → WorkingGraph
-```
+| Operator | Also accepted | Meaning |
+|---|---|---|
+| `AND` | `&` | Both terms match the **same memory node** |
+| `OR` | `|` | Either term matches |
+| `NOT` | `!` | Exclude nodes matching the term/expression |
+| `( ... )` | — | Group conditions |
 
-- 개념은 문자열 정확 일치 및 FTS5 어휘 인덱스로 찾는다. 임베딩 의미 유사도 검색은 제공하지 않는다.
-- Concept 후보는 최고 점수를 우선하며, 동점에는 검색 순서와 노드 ID의 구조화된 순서가 적용된다.
-- Concept 주변의 `mentions` 관계에 **실제로 연결된** Fact/Utterance만 수집한다. 이웃에 노드가 존재하기만 해서는 회수되지 않는다.
-- 각 노드의 `payload.user_id`를 검사해 소유 범위를 좁힌다. Fact 점수는 연결된 후보 hit의 최고 점수이며 동점은 최초 발견 순서다.
-- `limit`은 **Concept 후보 수가 아닌 최종 기억 순위**에 적용한다. 생략하면 일치 기억 전체가 대상이다.
-- 노드에 대한 사용자 Anchor 최단 경로를 합성한다. 검색 결과에 Anchor의 일반 목록을 임의로 추가하지 않는다.
-
-## 최근 목록
-
-사용자 기준점에 `spoke` 또는 `asserted_fact`로 직접 연결된 기억을 `last_seen_at DESC, id DESC`로 조회한다. 검색어 일치를 요구하지 않지만 제한된 목록은 전체 기억과 같지 않다.
-
-## 확장과 작업 그래프
-
-`node_id` 지정 시 이웃 및 해당 사용자 Anchor와의 경로를 수집하고 요청 내 WorkingGraph에 합성한다. Anchor 확장은 별도 제한된 최근 내용 경로를 사용한다. 다른 사용자의 Anchor 확장은 차단한다.
-
-모델에 전달되는 메모리 출력에서는 Fact·과거 Utterance와 `node_id`/`node_type`/`data`/`created_at`/`provenance`/`evidence_id` 등 내용 위주 필드를 노출하며 Concept 내부 연결은 숨길 수 있다. 새로운 Fact의 `evidence_id`는 비어 있을 수 있다.
-
-## 시간·정정
-
-조회 알고리즘은 **서로 모순되는 Fact들의 의미적 승자를 자동으로 판정하지 않는다**. `created_at`과 `last_seen_at`은 역할이 다르며, 최근 조회 순위가 곧 사실의 우선권은 아니다. 현재 사용자의 직접 정정·시간 범위는 호스트 모델/검증기의 정책으로 판단한다.
-
-## 오류와 한계
-
-검색 결과가 없으면 실제 기억 부재를 확정할 수 없다. FTS5 손상·사용자 범위 오류를 무시하거나 다른 결과로 조용히 우회하지 않는다. 한계, 계정 격리 및 영속성은 [엔진 구조](architecture.md)를 참고한다.
-
-## Boolean query
-
-`query`는 기존 `keyword`를 대체한다. 단일 검색어는 기존 검색 방식을 그대로 사용한다. 복합 검색은 `AND`/`&`, `OR`/`|`, `NOT`/`!`, 괄호 `()`를 지원하며, 우선순위는 NOT > AND > OR다. 따옴표 안의 공백은 하나의 검색어로 처리한다.
+Priority is **NOT > AND > OR**. Quote multiword search terms with single or double quotes. For example:
 
 ```text
 ("병력" | "질환" | "질병" | "아픔" | "disease") & ("어릴 적" | "어린 시절" | "유년기" | "childhood")
 ```
 
-각 검색어는 기존 Concept/FTS5 검색으로 기억 노드 집합을 생성하고, Boolean 표현식으로 집합을 필터링한다. `NOT 감기`는 현재 사용자에게 속한 Fact·Utterance 전체에서 감기가 검색된 노드를 제외한다. 검색식 평가 전에는 `limit`을 적용하지 않는다. 사용자간 데이터는 섞이지 않으며 의미적 동의어 자동 확장은 제공하지 않는다.
+`query="질환 AND NOT 감기"` returns nodes matched by `질환` but not by `감기`. `query="NOT 감기"` searches the **current user's** available Fact/Utterance collection and excludes nodes matched by `감기`. A plain query such as `query="어린 시절 질환"` keeps the previous whitespace-based keyword lookup behavior. The operators filter **existing keyword search results**, not literal string substrings of each stored text.
+
+## Search internals and limits
+
+1. Parse query terms and operators (plain queries use legacy whitespace splitting).
+2. For each term, look up Concept nodes using exact match then SQLite FTS5; at most **12 Concept candidates** are considered per term by default.
+3. Follow `mentions` links to user-owned Fact/Utterance nodes.
+4. Filter memory-node IDs with AND/OR/NOT, rank selected nodes and apply `limit` **after** Boolean evaluation.
+5. Return content-bearing nodes with IDs, timestamps, provenance/evidence fields where available. `node_id` can then expand a selected node.
+
+No embedding-based semantic search or automatic synonym/translation expansion is included. An empty result may mean no lexical hit, not that the user never discussed the topic. A `limit`-bounded result is not the entire database. Retrieval rank is not a rule for resolving contradictory facts: the host should compare time scope and explicit user corrections.
+
+## Recent overview / node expansion
+
+`memory_search(limit=10)` returns up to 10 recent user-owned memories linked to the user's anchor, ranked by `last_seen_at` and ID. It is **not** a complete memory dump. `memory_search(node_id=123)` retrieves one-hop graph context for an existing node and its user-anchor path; a different user's anchor is not permitted.
+
+For host setup and writing behavior see [integration guide](integrations.md). For the data model see [architecture](architecture.md).
