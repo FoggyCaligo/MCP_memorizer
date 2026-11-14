@@ -31,43 +31,80 @@ class RecallService:
     def recall_query(
         self, *, user_id: str, query: str, limit: int | None = None,
     ) -> WorkingGraph:
-        if not query.strip():
-            raise ValueError("memory recall query must be non-empty")
+        from .query import parse_query
+
         if limit is not None and limit < 1:
             raise ValueError("memory recall limit must be >= 1")
         anchor = self.graph.get_user_anchor(user_id)
         if anchor is None:
             raise KeyError(f"user anchor for '{user_id}' does not exist")
 
-        hits = self._select_query_seeds(query)
-        # A Concept directly indexes both extracted facts and original user
-        # utterances through 'mentions' edges. Rank both by the same Concept
-        # hit score; keep the caller's user ownership boundary intact.
-        memory_hits: dict[int, tuple[float, int]] = {}
-        for hit in hits:
-            neighborhood = self.graph.one_hop(hit.node_id)
-            connected_ids = {
-                edge.from_node_id if edge.to_node_id == hit.node_id else edge.to_node_id
-                for edge in neighborhood.edges
-                if edge.relation == "mentions"
-            }
-            for node in neighborhood.nodes:
-                if (node.id not in connected_ids or
-                        node.node_type not in {"fact", "utterance"} or
-                        node.payload.get("user_id") != user_id):
-                    continue
-                previous = memory_hits.get(node.id)
-                if previous is None:
-                    memory_hits[node.id] = (hit.score, len(memory_hits))
-                elif hit.score > previous[0]:
-                    memory_hits[node.id] = (hit.score, previous[1])
+        expression = parse_query(query)
+        per_term: dict[str, dict[int, tuple[float, int]]] = {}
 
-        ranked = sorted(
-            memory_hits, key=lambda node_id: (-memory_hits[node_id][0], memory_hits[node_id][1])
-        )
+        def matching_memories(term: str) -> dict[int, tuple[float, int]]:
+            if term in per_term:
+                return per_term[term]
+            hits = self._select_query_seeds(term)
+            matches: dict[int, tuple[float, int]] = {}
+            for hit in hits:
+                neighborhood = self.graph.one_hop(hit.node_id)
+                connected_ids = {
+                    edge.from_node_id if edge.to_node_id == hit.node_id else edge.to_node_id
+                    for edge in neighborhood.edges
+                    if edge.relation == "mentions"
+                }
+                for node in neighborhood.nodes:
+                    if (node.id not in connected_ids or
+                            node.node_type not in {"fact", "utterance"} or
+                            node.payload.get("user_id") != user_id):
+                        continue
+                    previous = matches.get(node.id)
+                    if previous is None:
+                        matches[node.id] = (hit.score, len(matches))
+                    elif hit.score > previous[0]:
+                        matches[node.id] = (hit.score, previous[1])
+            per_term[term] = matches
+            return matches
+
+        universe: set[int] | None = None
+
+        def evaluate(expr) -> set[int]:
+            nonlocal universe
+            if expr.op == "term":
+                return set(matching_memories(expr.value))
+            if expr.op == "not":
+                if universe is None:
+                    rows = self.graph.connection.execute(
+                        "SELECT id FROM nodes WHERE node_type IN ('fact', 'utterance') "
+                        "AND json_extract(payload_json, '$.user_id') = ?",
+                        (user_id,),
+                    ).fetchall()
+                    universe = {int(row["id"]) for row in rows}
+                return universe - evaluate(expr.left)
+            left = evaluate(expr.left)
+            right = evaluate(expr.right)
+            if expr.op == "and":
+                return left & right
+            if expr.op == "or":
+                return left | right
+            raise ValueError("unsupported query operator")
+
+        selected = evaluate(expression)
+        # Stable ranking after Boolean filtering: stronger matching terms first,
+        # then first-discovered order and node ID. NOT-only results use ID order.
+        scored: dict[int, tuple[float, int]] = {}
+        for matches in per_term.values():
+            for node_id, (score, ordinal) in matches.items():
+                previous = scored.get(node_id)
+                if previous is None or score > previous[0]:
+                    scored[node_id] = (score, ordinal)
+        ranked = sorted(selected, key=lambda node_id: (
+            -scored.get(node_id, (0.0, 0))[0],
+            scored.get(node_id, (0.0, node_id))[1], node_id,
+        ))
         if limit is not None:
             ranked = ranked[:limit]
-
         recalled = WorkingGraph()
         for node_id in ranked:
             path = self.graph.shortest_path_to_user_anchor(node_id, user_id)
