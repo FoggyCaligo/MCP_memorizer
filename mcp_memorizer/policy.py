@@ -25,7 +25,7 @@ MEMORY_SEARCH_DESCRIPTION = (
     "and parentheses ( ). Quoted phrases stay one query term. Operator precedence: NOT, AND, OR. "
     "Each term uses the existing keyword lookup; Boolean set operations filter matching Fact/Utterance nodes. "
     "NOT excludes memories matching its term; NOT alone excludes from all memories owned by the current user. "
-    "Example: query='("병력" | "질환" | "질병" | "아픔" | "disease") & ("어릴 적" | "어린 시절" | "유년기" | "childhood")'. "
+    "Example: query='(\"병력\" | \"질환\" | \"질병\" | \"아픔\" | \"disease\") & (\"어릴 적\" | \"어린 시절\" | \"유년기\" | \"childhood\")'. "
     "query may use a positive limit; overview requires limit 1..50, and node_id cannot combine with query or limit. "
     "Lexical matches are not automatically expanded to synonyms or translations. Empty results do not prove memory absence. "
     "Memory is host-local and read-only for the model. Do not supply user_id or remote target."
@@ -39,7 +39,7 @@ MEMORY_CATALOG_HINT = (
 )
 MEMORY_SEARCH_EXAMPLES = (
     "Examples: memory_search(query='MAI memory project'); "
-    "memory_search(query='("병력" | "질환" | "질병" | "아픔" | "disease") & ("어릴 적" | "어린 시절" | "유년기" | "childhood")', limit=10); "
+    "memory_search(query='(\"병력\" | \"질환\" | \"질병\" | \"아픔\" | \"disease\") & (\"어릴 적\" | \"어린 시절\" | \"유년기\" | \"childhood\")', limit=10); "
     "memory_search(query='질환 AND NOT 감기'); "
     "memory_search(limit=10); memory_search(node_id=123). "
     "Invalid: memory_search() or memory_search(node_id=123, limit=5)."
